@@ -1,9 +1,4 @@
 <?php
-header('Access-Control-Allow-Origin: http://localhost:3003');
-header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
-
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
@@ -20,32 +15,69 @@ function sendResponse($data, $statusCode = 200) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
-    
-    $username = $input['username'] ?? '';
-    $password = $input['password'] ?? '';
-    
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['name'] = $user['name'];
-        
-        sendResponse([
-            'success' => true,
-            'user' => [
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'name' => $user['name']
-            ]
-        ]);
+    $action = $input['action'] ?? '';
+
+    if ($action === 'signup') {
+        $name = $input['name'] ?? '';
+        $username = $input['username'] ?? '';
+        $password = $input['password'] ?? '';
+
+        // Check if username already exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
+            sendResponse([
+                'success' => false,
+                'message' => 'Username already exists'
+            ], 409);
+        }
+
+        // Hash password and insert user
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("INSERT INTO users (name, username, password) VALUES (?, ?, ?)");
+        if ($stmt->execute([$name, $username, $hashedPassword])) {
+            sendResponse([
+                'success' => true,
+                'message' => 'User registered successfully'
+            ]);
+        } else {
+            sendResponse([
+                'success' => false,
+                'message' => 'Registration failed'
+            ], 500);
+        }
+    } elseif ($action === 'login') {
+        $username = $input['username'] ?? '';
+        $password = $input['password'] ?? '';
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['name'] = $user['name'];
+
+            sendResponse([
+                'success' => true,
+                'user' => [
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'name' => $user['name']
+                ]
+            ]);
+        } else {
+            sendResponse([
+                'success' => false,
+                'message' => 'Invalid username or password'
+            ], 401);
+        }
     } else {
         sendResponse([
             'success' => false,
-            'message' => 'Invalid username or password'
-        ], 401);
+            'message' => 'Invalid action'
+        ], 400);
     }
 }
 

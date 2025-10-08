@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LoginForm } from './components/LoginForm';
+import { SignupForm } from './components/SignupForm';
 import { Dashboard } from './components/Dashboard';
 import { Products } from './components/Products';
 import { Sales } from './components/Sales';
@@ -18,6 +19,7 @@ interface ProductsProps {
 function AppContent() {
   const { user, login, logout, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   if (loading) {
     return (
@@ -28,7 +30,11 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LoginForm onLogin={login} />;
+    if (authMode === 'login') {
+      return <LoginForm onSwitchToSignup={() => setAuthMode('signup')} />;
+    } else {
+      return <SignupForm onSwitchToLogin={() => setAuthMode('login')} />;
+    }
   }
 
   const renderActiveTab = () => {

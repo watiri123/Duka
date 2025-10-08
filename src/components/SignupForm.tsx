@@ -1,34 +1,42 @@
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
-import { LockKeyholeIcon } from 'lucide-react';
+import { UserPlusIcon } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { useAuth } from '../hooks/useAuth.tsx';
 
-export function LoginForm({ onSwitchToSignup }: { onSwitchToSignup: () => void }) {
-  const { login } = useAuth();
+export function SignupForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
+  const { signup } = useAuth();
+  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const success = await login(username, password);
+      const success = await signup(name, username, password);
       if (!success) {
-        setError('Invalid username or password');
+        setError('Registration failed');
       }
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown login error occurred.');
+        setError('An unknown registration error occurred.');
       }
     } finally {
       setLoading(false);
@@ -41,11 +49,11 @@ export function LoginForm({ onSwitchToSignup }: { onSwitchToSignup: () => void }
         <CardHeader className="text-center">
           <div className="flex flex-col items-center gap-2">
             <div className="bg-primary text-primary-foreground p-3 rounded-full">
-              <LockKeyholeIcon className="h-6 w-6" />
+              <UserPlusIcon className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl">DukaPro Login</CardTitle>
+            <CardTitle className="text-2xl">DukaPro Sign Up</CardTitle>
           </div>
-          <CardDescription>Enter your credentials to access your dashboard</CardDescription>
+          <CardDescription>Create your account to get started</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -54,6 +62,19 @@ export function LoginForm({ onSwitchToSignup }: { onSwitchToSignup: () => void }
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                required
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -80,10 +101,18 @@ export function LoginForm({ onSwitchToSignup }: { onSwitchToSignup: () => void }
                 disabled={loading}
               />
             </div>
-            <div className="flex items-center justify-end">
-              <Button variant="link" type="button" className="p-0 h-auto text-sm font-semibold">
-                Forgot Password?
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                name="confirm-password"
+                type="password"
+                required
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <Button
               type="submit"
@@ -91,21 +120,16 @@ export function LoginForm({ onSwitchToSignup }: { onSwitchToSignup: () => void }
               disabled={loading}
               className="w-full bg-green-200 hover:bg-green-300 !text-black font-semibold border border-green-300 shadow-sm"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="justify-center flex-col gap-2">
+        <CardFooter className="justify-center">
           <div className="text-center text-sm">
-            <span className="text-muted-foreground">Don't have an account? </span>
-            <Button variant="link" type="button" className="p-0 h-auto text-sm font-semibold" onClick={onSwitchToSignup}>
-              Sign up here
+            <span className="text-muted-foreground">Already have an account? </span>
+            <Button variant="link" type="button" className="p-0 h-auto text-sm font-semibold" onClick={onSwitchToLogin}>
+              Login here
             </Button>
-          </div>
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Demo Credentials:</p>
-            <p>Username: <strong>admin</strong></p>
-            <p>Password: <strong>admin123</strong></p>
           </div>
         </CardFooter>
       </Card>
